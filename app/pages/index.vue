@@ -21,7 +21,7 @@ const loading = ref(false)
 const searchQuery = ref('')
 
 /* =====================
-  LOAD DATA (CLIENT ONLY)
+  LOAD DATA 
 ===================== */
 const loadBuildings = async () => {
   loading.value = true
@@ -35,7 +35,7 @@ const loadBuildings = async () => {
 onMounted(loadBuildings)
 
 /* =====================
-  TABLE COLUMNS (Nuxt UI v4)
+  TABLE COLUMNS 
 ===================== */
 const columns: TableColumn<Building>[] = [
   { accessorKey: 'name', header: 'Tên' },
@@ -46,7 +46,6 @@ const columns: TableColumn<Building>[] = [
   { accessorKey: 'cccdDate', header: 'Ngày cấp' },
   { id: 'actions', header: 'Hành động' }
 ]
-
 /* =====================
   PAGINATION & SEARCH
 ===================== */
@@ -152,7 +151,7 @@ const handleDelete = async (id?: number | string | null) => {
 const submitBuilding = async (building: Building) => {
   const method = building.id ? 'PUT' : 'POST'
 
-  await $fetch('/api/buildings', {
+  await $fetch('/api/buidings', {
     method,
     body: building
   })
@@ -296,7 +295,7 @@ const submitBuilding = async (building: Building) => {
                     value: i
                   }))"
                   size="xs"
-                  @@update:modelValue="handlePageChange"
+                  @update:modelValue="v => v !== undefined && handlePageChange(v as number)"
                 />
               </div>
 
