@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Swal from 'sweetalert2'
 import BuildingForm from '~/components/BuildingForm.vue'
 import type { Building } from '~/types/building'
 import type { TableColumn } from '@nuxt/ui'
-import BuildingTable from '~/components/BuildingTable.vue'
+
 /* =====================
   PAGE CONFIG
 ===================== */
@@ -18,6 +18,7 @@ definePageMeta({
 const buildings = ref<Building[]>([])
 const editingBuilding = ref<Building | null>(null)
 const loading = ref(false)
+const searchQuery = ref('')
 
 /* =====================
   LOAD DATA (CLIENT ONLY)
@@ -43,19 +44,78 @@ const columns: TableColumn<Building>[] = [
   { accessorKey: 'phone', header: 'SĐT' },
   { accessorKey: 'cccd', header: 'CCCD' },
   { accessorKey: 'cccdDate', header: 'Ngày cấp' },
-  { id: 'actions',header: 'Hành động'
-  }
+  { id: 'actions', header: 'Hành động' }
 ]
 
+/* =====================
+  PAGINATION & SEARCH
+===================== */
 const pagination = ref({
   pageIndex: 0,
   pageSize: 5
 })
+
+// 🔍 Dữ liệu sau khi lọc theo tìm kiếm
+const filteredBuildings = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return buildings.value
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim()
+  
+  return buildings.value.filter(building => 
+    building.name.toLowerCase().includes(query) ||
+    building.address.toLowerCase().includes(query) ||
+    building.representative.toLowerCase().includes(query) ||
+    building.phone.includes(query) ||
+    building.cccd.includes(query)
+  )
+})
+
+// 📄 Dữ liệu sau khi phân trang
 const pagedBuildings = computed(() => {
   const start = pagination.value.pageIndex * pagination.value.pageSize
   const end = start + pagination.value.pageSize
-  return buildings.value.slice(start, end)
+  return filteredBuildings.value.slice(start, end)
 })
+
+// 📊 Thông tin phân trang
+const paginationInfo = computed(() => {
+  const total = filteredBuildings.value.length
+  const pageCount = Math.ceil(total / pagination.value.pageSize) || 1
+  return {
+    total,
+    pageCount,
+    currentPage: pagination.value.pageIndex + 1,
+    hasNextPage: pagination.value.pageIndex < pageCount - 1,
+    hasPrevPage: pagination.value.pageIndex > 0
+  }
+})
+
+/* =====================
+  SEARCH & PAGINATION HANDLERS
+===================== */
+const handleSearch = () => {
+  // Reset về trang 1 khi tìm kiếm
+  pagination.value.pageIndex = 0
+}
+
+const handlePageChange = (newPageIndex: number) => {
+  pagination.value.pageIndex = newPageIndex
+}
+
+const goToNextPage = () => {
+  if (paginationInfo.value.hasNextPage) {
+    pagination.value.pageIndex++
+  }
+}
+
+const goToPreviousPage = () => {
+  if (paginationInfo.value.hasPrevPage) {
+    pagination.value.pageIndex--
+  }
+}
+
 /* =====================
   ACTIONS
 ===================== */
@@ -104,7 +164,7 @@ const submitBuilding = async (building: Building) => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto p-6 space-y-6">
+  <div class="max-w-7xl mx-auto p-6 space-y-6">
 
     <!-- TITLE -->
     <UCard>
@@ -124,24 +184,44 @@ const submitBuilding = async (building: Building) => {
     <ClientOnly>
       <UCard>
         <template #header>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-4">
             <h3 class="text-lg font-semibold">
               📋 Danh sách tòa nhà
             </h3>
-            <UButton
-              size="xs"
-              variant="soft"
-              icon="i-heroicons-arrow-path"
-              :loading="loading"
-              @click="loadBuildings"
-            >
-              Tải lại
-            </UButton>
+            <div class="flex gap-2 items-center flex-1">
+              <!-- SEARCH INPUT -->
+              <UInput
+                v-model="searchQuery"
+                placeholder="🔍 Tìm theo tên, địa chỉ, SĐT..."
+                icon="i-heroicons-magnifying-glass"
+                @input="handleSearch"
+                size="sm"
+                class="flex-1"
+              />
+              
+              <UButton
+                size="xs"
+                variant="soft"
+                icon="i-heroicons-arrow-path"
+                :loading="loading"
+                @click="loadBuildings"
+              >
+                Tải lại
+              </UButton>
+            </div>
           </div>
         </template>
 
+        <!-- SEARCH RESULTS INFO -->
+        <div v-if="searchQuery" class="mb-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-600">
+          🔍 Tìm thấy <strong>{{ filteredBuildings.length }}</strong> kết quả
+          <span v-if="filteredBuildings.length === 0"> - Không có dữ liệu phù hợp</span>
+        </div>
+
+        <!-- TABLE -->
         <UTable
-          :data="buildings"
+          v-if="pagedBuildings.length > 0"
+          :data="pagedBuildings"
           :columns="columns"
           :loading="loading"
         >
@@ -170,13 +250,70 @@ const submitBuilding = async (building: Building) => {
           </template>
         </UTable>
 
+        <!-- EMPTY STATE -->
         <div
-          v-if="!loading && buildings.length === 0"
-          class="text-center text-gray-400 py-6"
+          v-else
+          class="text-center text-gray-400 py-12"
         >
-          Không có dữ liệu tòa nhà
+          <div class="text-5xl mb-3">📭</div>
+          <p v-if="searchQuery" class="text-lg">
+            Không tìm thấy tòa nhà nào
+          </p>
+          <p v-else class="text-lg">
+            Không có dữ liệu tòa nhà
+          </p>
         </div>
+
+        <!-- PAGINATION CONTROLS -->
+        <template #footer v-if="paginationInfo.pageCount > 1 || pagedBuildings.length > 0">
+          <div class="flex items-center justify-between">
+            <!-- PAGINATION INFO -->
+            <div class="text-sm text-gray-600">
+              Trang <strong>{{ paginationInfo.currentPage }}</strong> 
+              / <strong>{{ paginationInfo.pageCount }}</strong>
+              (Tổng: <strong>{{ paginationInfo.total }}</strong> tòa nhà)
+            </div>
+
+            <!-- PAGINATION BUTTONS -->
+            <div class="flex gap-2 items-center">
+              <UButton
+                size="xs"
+                variant="soft"
+                icon="i-heroicons-chevron-left"
+                :disabled="!paginationInfo.hasPrevPage"
+                @click="goToPreviousPage"
+              >
+                Trước
+              </UButton>
+
+              <!-- PAGE SELECTOR -->
+              <div class="flex items-center gap-2" v-if="paginationInfo.pageCount > 1">
+                <span class="text-sm text-gray-500">Trang:</span>
+                <USelect
+                  :model-value="pagination.pageIndex"
+                  :options="Array.from({ length: paginationInfo.pageCount }, (_, i) => ({
+                    label: String(i + 1),
+                    value: i
+                  }))"
+                  size="xs"
+                  @@update:modelValue="handlePageChange"
+                />
+              </div>
+
+              <UButton
+                size="xs"
+                variant="soft"
+                icon="i-heroicons-chevron-right"
+                :disabled="!paginationInfo.hasNextPage"
+                @click="goToNextPage"
+              >
+                Tiếp
+              </UButton>
+            </div>
+          </div>
+        </template>
       </UCard>
+      
     </ClientOnly>
 
   </div>
