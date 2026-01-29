@@ -9,6 +9,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'edit', building: Building): void
   (e: 'delete', id: number | string): void
+  (e: 'view-map', building: Building): void
 }>()
 
 /* =====================
@@ -21,6 +22,9 @@ const columns: TableColumn<Building>[] = [
   { accessorKey: 'phone', header: 'SĐT' },
   { accessorKey: 'cccd', header: 'CCCD' },
   { accessorKey: 'cccdDate', header: 'Ngày cấp' },
+  { accessorKey: 'lat', header: 'Vĩ độ' },
+  { accessorKey: 'lng', header: 'Kinh độ' },
+
   {
     id: 'actions',
     header: 'Hành động'
@@ -64,6 +68,16 @@ const columns: TableColumn<Building>[] = [
     >
       Xóa
     </UButton>
+    <UButton
+      size="xs"
+      color="primary"
+      variant="soft"
+      icon="i-heroicons-map-pin"
+      @click="emit('view-map', row.original)"
+    >
+      Bản đồ
+    </UButton>
+
   </div>
 </template>
       </UTable>

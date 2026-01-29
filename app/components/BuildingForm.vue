@@ -20,7 +20,9 @@ const emptyForm: Building = {
   representative: '',
   phone: '',
   cccd: '',
-  cccdDate: ''
+  cccdDate: '',
+  lat: undefined,
+  lng: undefined
 }
 
 const form = ref<Building>({ ...emptyForm })
@@ -76,6 +78,22 @@ const validate = () => {
   } else if (new Date(form.value.cccdDate) > new Date()) {
     errors.value.cccdDate = 'Ngày cấp không hợp lệ'
   }
+  if (
+  form.value.lat === undefined ||
+  form.value.lat < -90 ||
+  form.value.lat > 90
+  ) {
+    errors.value.lat = 'Vĩ độ phải nằm trong khoảng -90 đến 90'
+  }
+
+  if (
+    form.value.lat === undefined ||
+    form.value.lat < -180 ||
+    form.value.lat > 180
+  ) {
+    errors.value.lat = 'Kinh độ phải nằm trong khoảng -180 đến 180'
+  }
+
 
   return Object.keys(errors.value).length === 0
 }
@@ -139,6 +157,24 @@ const handleCancel = () => {
       <UFormField label="Ngày cấp" required :error="errors.cccdDate">
         <UInput v-model="form.cccdDate" type="date"/>
       </UFormField>
+      <UFormField label="Vĩ độ (Latitude)" required :error="errors.lat">
+        <UInput
+          v-model.number="form.lat"
+          type="number"
+          step="any"
+          placeholder="VD: 21.0285"
+        />
+      </UFormField>
+
+      <UFormField label="Kinh độ (Longitude)" required :error="errors.lng">
+        <UInput
+          v-model.number="form.lng"
+          type="number"
+          step="any"
+          placeholder="VD: 105.8542"
+        />
+      </UFormField>
+
     </UForm>
 
     <template #footer>

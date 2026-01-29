@@ -44,6 +44,8 @@ const columns: TableColumn<Building>[] = [
   { accessorKey: 'phone', header: 'SĐT' },
   { accessorKey: 'cccd', header: 'CCCD' },
   { accessorKey: 'cccdDate', header: 'Ngày cấp' },
+  { accessorKey: 'lat', header: 'Vĩ độ' },
+  { accessorKey: 'lng', header: 'Kinh độ' },
   { id: 'actions', header: 'Hành động' }
 ]
 /* =====================
@@ -67,7 +69,9 @@ const filteredBuildings = computed(() => {
     building.address.toLowerCase().includes(query) ||
     building.representative.toLowerCase().includes(query) ||
     building.phone.includes(query) ||
-    building.cccd.includes(query)
+    building.cccd.includes(query) ||
+    String(building.lat).includes(query) ||
+    String(building.lng).includes(query)
   )
 })
 
@@ -151,7 +155,7 @@ const handleDelete = async (id?: number | string | null) => {
 const submitBuilding = async (building: Building) => {
   const method = building.id ? 'PUT' : 'POST'
 
-  await $fetch('/api/buidings', {
+  await $fetch('/api/buildings', {
     method,
     body: building
   })
@@ -245,6 +249,16 @@ const submitBuilding = async (building: Building) => {
               >
                 Xóa
               </UButton>
+              <UButton
+                size="xs"
+                color="primary"
+                variant="soft"
+                icon="i-heroicons-map-pin"
+                @click="navigateTo(`/map?lat=${row.original.lat}&lng=${row.original.lng}`)"
+              >
+                Bản đồ
+              </UButton>
+
             </div>
           </template>
         </UTable>
